@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Financeiro — Grupo Ecomp</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #21224F;
+    --navy-light: #2d2e6b;
+    --navy-dark: #161730;
+    --accent: #00C9A7;
+    --accent2: #4E9AF1;
+    --danger: #FF5C7D;
+    --warning: #FFB547;
+    --success: #00C9A7;
+    --text: #E8EAF6;
+    --text-muted: #8890C4;
+    --surface: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--navy-dark);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* Background mesh */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 60% at 10% 0%, rgba(78,154,241,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(0,201,167,0.10) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; }
+
+  /* HEADER */
+  header {
+    padding: 2.5rem 3rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .header-left {}
+  .logo-group { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+  .logo-dot {
+    width: 10px; height: 10px; border-radius: 2px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+  }
+  .logo-text { font-family: 'Syne', sans-serif; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.2em; color: var(--text-muted); text-transform: uppercase; }
+  h1 { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; color: var(--text); line-height: 1.1; }
+  h1 span { color: var(--accent); }
+
+  .period-badge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.4rem 1rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1.5rem 3rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.6rem 1.4rem;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: -1px;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  /* MAIN */
+  main { padding: 2rem 3rem 3rem; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi-card.blue::before { background: var(--accent2); }
+  .kpi-card.green::before { background: var(--accent); }
+  .kpi-card.red::before { background: var(--danger); }
+  .kpi-card.yellow::before { background: var(--warning); }
+
+  .kpi-label { font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; }
+  .kpi-value { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; }
+  .kpi-value.positive { color: var(--accent); }
+  .kpi-value.negative { color: var(--danger); }
+  .kpi-value.neutral { color: var(--text); }
+  .kpi-sub { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+  /* CHART GRID */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .chart-grid.single { grid-template-columns: 1fr; }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .chart-card h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 1.25rem;
+  }
+  .chart-card h3 em { color: var(--text); font-style: normal; }
+  .chart-wrapper { position: relative; height: 260px; }
+
+  /* METAS TABLE */
+  .metas-section { margin-top: 1.25rem; }
+  .metas-section h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    color: var(--text);
+  }
+  .metas-section h2 span { color: var(--accent2); }
+
+  .meta-table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+  }
+  thead th {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+  .badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+  }
+  .badge-eq { background: rgba(78,154,241,0.15); color: var(--accent2); }
+  .badge-10 { background: rgba(0,201,167,0.15); color: var(--accent); }
+  .badge-20 { background: rgba(255,181,71,0.15); color: var(--warning); }
+
+  .val-pos { color: var(--accent); }
+  .val-neg { color: var(--danger); }
+  .val-neu { color: var(--text); }
+
+  /* FORMULA NOTE */
+  .formula-note {
+    background: rgba(78,154,241,0.07);
+    border: 1px solid rgba(78,154,241,0.2);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+  .formula-note strong { color: var(--accent2); }
+
+  /* RESULTADO BADGE */
+  .result-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.25rem 0.7rem;
+    border-radius: 20px;
+  }
+  .result-pill.profit { background: rgba(0,201,167,0.15); color: var(--accent); }
+  .result-pill.loss { background: rgba(255,92,125,0.15); color: var(--danger); }
+
+  .gap-tag {
+    display: inline-block;
+    font-size: 0.62rem;
+    font-weight: 600;
+    margin-left: 5px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    vertical-align: middle;
+  }
+  .gap-tag.neg { background: rgba(255,92,125,0.15); color: var(--danger); }
+  .gap-tag.pos { background: rgba(0,201,167,0.15); color: var(--accent); }
+  .meta-cell { white-space: nowrap; }
+
+  @media (max-width: 768px) {
+    header, main { padding-left: 1.25rem; padding-right: 1.25rem; }
+    .tabs { padding-left: 1.25rem; }
+    .chart-grid { grid-template-columns: 1fr; }
+    h1 { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<header>
+  <div class="header-left">
+    <div class="logo-group">
+      <div class="logo-dot"></div>
+      <span class="logo-text">Grupo Ecomp · Financeiro</span>
+    </div>
+    <h1>Dashboard <span>Q2 2025</span></h1>
+  </div>
+  <div class="period-badge">Abr · Mai · Jun / 2025</div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('segcomp')">Segcomp</button>
+  <button class="tab-btn" onclick="switchTab('techcomp')">Techcomp</button>
+  <button class="tab-btn" onclick="switchTab('consolidado')">Consolidado</button>
+  <button class="tab-btn" onclick="switchTab('metas')">Metas Comerciais</button>
+</div>
+
+<main>
+
+<!-- ===== SEGCOMP ===== -->
+<div id="tab-segcomp" class="tab-content active">
+
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Receita Total (3 meses)</div>
+      <div class="kpi-value neutral">R$ 531.950</div>
+      <div class="kpi-sub">Abr + Mai + Jun</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Custo Total (3 meses)</div>
+      <div class="kpi-value negative">R$ 657.919</div>
+      <div class="kpi-sub">Abr + Mai + Jun</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Resultado Acumulado</div>
+      <div class="kpi-value negative">– R$ 125.969</div>
+      <div class="kpi-sub">Prejuízo no período</div>
+    </div>
+    <div class="kpi-card yellow">
+      <div class="kpi-label">Margem Méd. Receita/Custo</div>
+      <div class="kpi-value negative">– 23,7%</div>
+      <div class="kpi-sub">Receita cobre 80,8% dos custos</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Entrada vs. Saída — <em>Segcomp</em></h3>
+      <div class="chart-wrapper">
+        <canvas id="chartSegBar"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Resultado Mensal — <em>Segcomp</em></h3>
+      <div class="chart-wrapper">
+        <canvas id="chartSegResult"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid single">
+    <div class="chart-card">
+      <h3>Evolução de Receita vs. Ponto de Equilíbrio — <em>Segcomp</em></h3>
+      <div class="chart-wrapper" style="height:220px">
+        <canvas id="chartSegPE"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== TECHCOMP ===== -->
+<div id="tab-techcomp" class="tab-content">
+
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Receita Total (3 meses)</div>
+      <div class="kpi-value neutral">R$ 181.639</div>
+      <div class="kpi-sub">Abr + Mai + Jun</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Custo Total (3 meses)</div>
+      <div class="kpi-value neutral">R$ 167.045</div>
+      <div class="kpi-sub">Abr + Mai + Jun</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Resultado Acumulado</div>
+      <div class="kpi-value positive">+ R$ 14.594</div>
+      <div class="kpi-sub">Lucro no período</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Margem Média Líquida</div>
+      <div class="kpi-value positive">+ 8,0%</div>
+      <div class="kpi-sub">Próxima da meta 10%</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Entrada vs. Saída — <em>Techcomp</em></h3>
+      <div class="chart-wrapper">
+        <canvas id="chartTechBar"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Resultado Mensal — <em>Techcomp</em></h3>
+      <div class="chart-wrapper">
+        <canvas id="chartTechResult"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid single">
+    <div class="chart-card">
+      <h3>Evolução de Receita vs. Ponto de Equilíbrio — <em>Techcomp</em></h3>
+      <div class="chart-wrapper" style="height:220px">
+        <canvas id="chartTechPE"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== CONSOLIDADO ===== -->
+<div id="tab-consolidado" class="tab-content">
+
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Receita Consolidada</div>
+      <div class="kpi-value neutral">R$ 713.589</div>
+      <div class="kpi-sub">Grupo Ecomp Q2 2025</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Custos Consolidados</div>
+      <div class="kpi-value negative">R$ 824.964</div>
+      <div class="kpi-sub">Grupo Ecomp Q2 2025</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Resultado Grupo</div>
+      <div class="kpi-value negative">– R$ 111.375</div>
+      <div class="kpi-sub">Techcomp salva, Segcomp arrasta</div>
+    </div>
+    <div class="kpi-card yellow">
+      <div class="kpi-label">Margem Grupo</div>
+      <div class="kpi-value negative">– 15,6%</div>
+      <div class="kpi-sub">Meta: 0% (PE) → +20%</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Receita vs. Custo — <em>Consolidado por mês</em></h3>
+      <div class="chart-wrapper">
+        <canvas id="chartConsolidado"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Comparativo por Empresa — <em>Resultado acumulado</em></h3>
+      <div class="chart-wrapper">
+        <canvas id="chartEmpresas"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== METAS ===== -->
+<div id="tab-metas" class="tab-content">
+
+  <div class="formula-note">
+    <strong>Fórmula:</strong> Margem de Contribuição histórica = <strong>70%</strong> &nbsp;|&nbsp;
+    <strong>PE</strong> = Custo ÷ 0,70 &nbsp;|&nbsp;
+    <strong>Meta 10%</strong> = Custo ÷ 0,60 &nbsp;|&nbsp;
+    <strong>Meta 20%</strong> = Custo ÷ 0,50<br>
+    <span style="color:rgba(255,255,255,0.3)">GAP = diferença entre receita real e a meta. Negativo = quanto falta vender. Positivo = folga.</span>
+  </div>
+
+  <div class="metas-section">
+    <h2>Metas Comerciais — <span>Segcomp</span></h2>
+    <div class="meta-table-wrap">
+      <table id="tableMetas-seg"></table>
+    </div>
+  </div>
+
+  <div class="metas-section" style="margin-top:2rem">
+    <h2>Metas Comerciais — <span>Techcomp</span></h2>
+    <div class="meta-table-wrap">
+      <table id="tableMetas-tech"></table>
+    </div>
+  </div>
+
+  <div class="chart-grid" style="margin-top:1.5rem">
+    <div class="chart-card">
+      <h3>Metas Comerciais — <em>Segcomp</em></h3>
+      <div class="chart-wrapper">
+        <canvas id="chartMetaSeg"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Metas Comerciais — <em>Techcomp</em></h3>
+      <div class="chart-wrapper">
+        <canvas id="chartMetaTech"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+</div>
+
+<script>
+const meses = ['Abril', 'Maio', 'Junho'];
+
+// ---- DATA ----
+const seg = {
+  entrada: [190953.08, 179291, 161695.92],
+  saida:   [243554, 200500, 213864.58]
+};
+const tech = {
+  entrada: [61287.36, 59641.02, 60710.41],
+  saida:   [55731.40, 55086.65, 56226.68]
+};
+
+const MC = 0.70;
+
+function calcMeta(custo, lucro) {
+  // Receita = Custo / (MC - lucro%)
+  return custo / (MC - lucro);
+}
+
+function perc(a, b) { return ((a - b) / b * 100).toFixed(1); }
+
+// ---- CHART DEFAULTS ----
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.color = '#8890C4';
+
+function barChart(id, labels, datasets) {
+  new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 16, font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => ' R$ ' + ctx.raw.toLocaleString('pt-BR', {minimumFractionDigits:0}) } } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { size: 10 }, callback: v => 'R$' + (v/1000).toFixed(0) + 'k' } }
+      }
+    }
+  });
+}
+
+function lineChart(id, labels, datasets, min) {
+  new Chart(document.getElementById(id), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => ' R$ ' + ctx.raw.toLocaleString('pt-BR', {minimumFractionDigits:0}) } } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { min: min || undefined, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { size: 10 }, callback: v => 'R$' + (v/1000).toFixed(0) + 'k' } }
+      }
+    }
+  });
+}
+
+// ---- SEGCOMP CHARTS ----
+barChart('chartSegBar', meses, [
+  { label: 'Entrada', data: seg.entrada, backgroundColor: 'rgba(78,154,241,0.7)', borderRadius: 4 },
+  { label: 'Saída',   data: seg.saida,   backgroundColor: 'rgba(255,92,125,0.7)', borderRadius: 4 }
+]);
+
+lineChart('chartSegResult', meses, [
+  { label: 'Resultado', data: seg.entrada.map((e,i) => e - seg.saida[i]),
+    borderColor: '#FF5C7D', backgroundColor: 'rgba(255,92,125,0.1)', fill: true, tension: 0.4, pointRadius: 5 }
+]);
+
+lineChart('chartSegPE', meses, [
+  { label: 'Receita Real', data: seg.entrada, borderColor: '#4E9AF1', tension: 0.3, pointRadius: 5, borderWidth: 2 },
+  { label: 'Ponto de Equilíbrio', data: seg.saida.map(c => c / MC), borderColor: '#8890C4', borderDash: [6,4], tension: 0, pointRadius: 0, borderWidth: 1.5 },
+  { label: 'Meta 10%', data: seg.saida.map(c => calcMeta(c, 0.10)), borderColor: '#00C9A7', borderDash: [4,4], tension: 0, pointRadius: 0, borderWidth: 1.5 },
+  { label: 'Meta 20%', data: seg.saida.map(c => calcMeta(c, 0.20)), borderColor: '#FFB547', borderDash: [4,4], tension: 0, pointRadius: 0, borderWidth: 1.5 },
+], 100000);
+
+// ---- TECHCOMP CHARTS ----
+barChart('chartTechBar', meses, [
+  { label: 'Entrada', data: tech.entrada, backgroundColor: 'rgba(78,154,241,0.7)', borderRadius: 4 },
+  { label: 'Saída',   data: tech.saida,   backgroundColor: 'rgba(255,92,125,0.7)', borderRadius: 4 }
+]);
+
+lineChart('chartTechResult', meses, [
+  { label: 'Resultado', data: tech.entrada.map((e,i) => e - tech.saida[i]),
+    borderColor: '#00C9A7', backgroundColor: 'rgba(0,201,167,0.1)', fill: true, tension: 0.4, pointRadius: 5 }
+]);
+
+lineChart('chartTechPE', meses, [
+  { label: 'Receita Real', data: tech.entrada, borderColor: '#4E9AF1', tension: 0.3, pointRadius: 5, borderWidth: 2 },
+  { label: 'Ponto de Equilíbrio', data: tech.saida.map(c => c / MC), borderColor: '#8890C4', borderDash: [6,4], tension: 0, pointRadius: 0, borderWidth: 1.5 },
+  { label: 'Meta 10%', data: tech.saida.map(c => calcMeta(c, 0.10)), borderColor: '#00C9A7', borderDash: [4,4], tension: 0, pointRadius: 0, borderWidth: 1.5 },
+  { label: 'Meta 20%', data: tech.saida.map(c => calcMeta(c, 0.20)), borderColor: '#FFB547', borderDash: [4,4], tension: 0, pointRadius: 0, borderWidth: 1.5 },
+], 40000);
+
+// ---- CONSOLIDADO ----
+const consEnt = meses.map((_,i) => seg.entrada[i] + tech.entrada[i]);
+const consSai = meses.map((_,i) => seg.saida[i]   + tech.saida[i]);
+
+barChart('chartConsolidado', meses, [
+  { label: 'Receita Total', data: consEnt, backgroundColor: 'rgba(78,154,241,0.7)', borderRadius: 4 },
+  { label: 'Custo Total',   data: consSai, backgroundColor: 'rgba(255,92,125,0.7)', borderRadius: 4 }
+]);
+
+new Chart(document.getElementById('chartEmpresas'), {
+  type: 'bar',
+  data: {
+    labels: ['Segcomp', 'Techcomp', 'Grupo Total'],
+    datasets: [{
+      label: 'Resultado Acumulado Q2',
+      data: [
+        seg.entrada.reduce((a,b)=>a+b,0) - seg.saida.reduce((a,b)=>a+b,0),
+        tech.entrada.reduce((a,b)=>a+b,0) - tech.saida.reduce((a,b)=>a+b,0),
+        (seg.entrada.reduce((a,b)=>a+b,0) + tech.entrada.reduce((a,b)=>a+b,0)) - (seg.saida.reduce((a,b)=>a+b,0) + tech.saida.reduce((a,b)=>a+b,0))
+      ],
+      backgroundColor: ['rgba(255,92,125,0.7)', 'rgba(0,201,167,0.7)', 'rgba(255,92,125,0.5)'],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' R$ ' + ctx.raw.toLocaleString('pt-BR', {minimumFractionDigits:0}) } } },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { callback: v => 'R$' + (v/1000).toFixed(0) + 'k' } }
+    }
+  }
+});
+
+// ---- METAS TABLES (dynamic with GAP) ----
+function fmtBRL(v) {
+  return 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+}
+function gapTag(real, meta) {
+  const d = real - meta;
+  const cls = d >= 0 ? 'pos' : 'neg';
+  const sign = d >= 0 ? '+' : '';
+  return `<span class="gap-tag ${cls}">${sign}${fmtBRL(d)}</span>`;
+}
+function buildMetaTable(tableId, empresa) {
+  const mesesArr = empresa.entrada.map((e, i) => ({
+    nome: meses[i], real: e, custo: empresa.saida[i]
+  }));
+  const avgReal  = mesesArr.reduce((a, m) => a + m.real, 0) / 3;
+  const avgCusto = mesesArr.reduce((a, m) => a + m.custo, 0) / 3;
+  mesesArr.push({ nome: 'Média Q2', real: avgReal, custo: avgCusto, isAvg: true });
+
+  const thead = `<thead><tr>
+    <th>Mês</th>
+    <th>Receita real</th>
+    <th>Resultado</th>
+    <th><span class="badge badge-eq">PE — vender</span></th>
+    <th><span class="badge badge-10">Meta 10% — vender</span></th>
+    <th><span class="badge badge-20">Meta 20% — vender</span></th>
+  </tr></thead>`;
+
+  const rows = mesesArr.map(m => {
+    const resultado = m.real - m.custo;
+    const pillClass = resultado >= 0 ? 'profit' : 'loss';
+    const pillIcon  = resultado >= 0 ? '▲' : '▼';
+    const pe  = m.custo / MC;
+    const m10 = calcMeta(m.custo, 0.10);
+    const m20 = calcMeta(m.custo, 0.20);
+    const rowStyle = m.isAvg ? 'style="background:rgba(255,255,255,0.03);font-weight:600"' : '';
+    return `<tr ${rowStyle}>
+      <td>${m.nome}</td>
+      <td>${fmtBRL(m.real)}</td>
+      <td><span class="result-pill ${pillClass}">${pillIcon} ${resultado >= 0 ? '+' : ''}${fmtBRL(resultado)}</span></td>
+      <td class="meta-cell val-neu">${fmtBRL(pe)} ${gapTag(m.real, pe)}</td>
+      <td class="meta-cell val-pos">${fmtBRL(m10)} ${gapTag(m.real, m10)}</td>
+      <td class="meta-cell val-pos">${fmtBRL(m20)} ${gapTag(m.real, m20)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById(tableId).innerHTML = thead + `<tbody>${rows}</tbody>`;
+}
+
+buildMetaTable('tableMetas-seg',  seg);
+buildMetaTable('tableMetas-tech', tech);
+
+// ---- METAS CHARTS ----
+const metasSeg = {
+  pe:  seg.saida.map(c => c / MC),
+  m10: seg.saida.map(c => calcMeta(c, 0.10)),
+  m20: seg.saida.map(c => calcMeta(c, 0.20))
+};
+const metasTech = {
+  pe:  tech.saida.map(c => c / MC),
+  m10: tech.saida.map(c => calcMeta(c, 0.10)),
+  m20: tech.saida.map(c => calcMeta(c, 0.20))
+};
+
+function metaChart(id, realData, metas, min) {
+  new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: {
+      labels: meses,
+      datasets: [
+        { label: 'Receita Real', data: realData, backgroundColor: 'rgba(78,154,241,0.6)', borderRadius: 3 },
+        { label: 'PE (Equilíbrio)', data: metas.pe, type: 'line', borderColor: '#8890C4', borderDash: [5,4], pointRadius: 4, borderWidth: 1.5, fill: false, tension: 0 },
+        { label: 'Meta 10%', data: metas.m10, type: 'line', borderColor: '#00C9A7', borderDash: [4,4], pointRadius: 4, borderWidth: 1.5, fill: false, tension: 0 },
+        { label: 'Meta 20%', data: metas.m20, type: 'line', borderColor: '#FFB547', borderDash: [4,4], pointRadius: 4, borderWidth: 1.5, fill: false, tension: 0 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 10 } } }, tooltip: { callbacks: { label: ctx => ' R$ ' + ctx.raw.toLocaleString('pt-BR', {minimumFractionDigits:0}) } } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { min: min, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { callback: v => 'R$' + (v/1000).toFixed(0) + 'k', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+metaChart('chartMetaSeg',  seg.entrada,  metasSeg,  100000);
+metaChart('chartMetaTech', tech.entrada, metasTech, 40000);
+
+// ---- TABS ----
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
